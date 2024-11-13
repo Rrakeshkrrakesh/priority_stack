@@ -1,26 +1,49 @@
+import requests
 import google.generativeai as genai
 import os
 import streamlit as st
 
 # Configure Gemini (replace with your actual API key or use Streamlit secrets)
-api_key = st.secrets["GEMINI_API_KEY"] # Or os.environ["API_KEY"] if not using Streamlit secrets
+api_key = st.secrets["GEMINI_API_KEY"] # Or os.environ["API_KEY"]
 genai.configure(api_key=api_key)
 
 def analyze_links(urls):
     keywords = []
-    model = genai.GenerativeModel("gemini-1.5-flash") # Use a suitable Gemini model
+    model = genai.GenerativeModel("gemini-1.5-flash")  # Or a suitable Gemini model
     for url in urls:
         try:
-            prompt = f"Extract the most common and important keywords related to the main topics discussed on this webpage: {url}.  Return a list of keywords separated by commas."
+            response = requests.get(url, timeout=10) # Add a timeout to prevent indefinite hanging
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            webpage_content = response.text
+
+            # Limit content size to prevent exceeding LLM token limits
+            max_content_length = 2000  # Adjust as needed
+            truncated_content = webpage_content[:max_content_length]
+
+
+            prompt = f"""
+                Extract the most common and important keywords related to the main topics discussed on this webpage:
+
+                ```html
+                {truncated_content}
+                ```
+
+                Return a list of keywords separated by commas.
+            """
 
             response = model.generate_content(prompt)
-            extracted_keywords = response.text.split(",")  # Access the text directly
+            extracted_keywords = response.text.split(",")
             keywords.extend([keyword.strip() for keyword in extracted_keywords])
 
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error fetching URL {url}: {e}")
         except Exception as e:
             st.error(f"Error analyzing URL {url}: {e}")
-
     return keywords
+
+
+
+
 
 
 st.title("Priority Map")
