@@ -42,6 +42,10 @@ def analyze_links(urls):
     return keywords
 
 
+# ... (after keyword processing)
+
+top_keywords = [f"{keyword} ({count})" for keyword, count in sorted_keywords[:5]]  # Format as "keyword (count)"
+st.write(", ".join(top_keywords))
 
 
 
