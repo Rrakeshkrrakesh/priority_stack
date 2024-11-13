@@ -1,3 +1,4 @@
 streamlit  # Replace with your actual Streamlit version
 google-generativeai
+requests
 # other libraries...
