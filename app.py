@@ -30,24 +30,26 @@ def analyze_links(urls):
                 {truncated_content}
                 ```
 
-                Return a JSON array of strings (keywords).
+                Return a JSON array of strings (keywords).  Do not include any extra text or formatting, just the JSON array.
             """
 
             response = model.generate_content(prompt)
 
             try:
-                extracted_keywords = json.loads(response.text)  # Use json.loads()
+                # Remove potential problematic characters and whitespace
+                cleaned_response = response.text.strip()
+                if (cleaned_response.startswith("```") and cleaned_response.endswith("```")):
+                    cleaned_response = cleaned_response[3:-3]
+                extracted_keywords = json.loads(cleaned_response)
             except json.JSONDecodeError as e:
-                st.error(f"Invalid JSON returned by LLM for URL: {url}. Error: {e}")
-                st.write(f"Raw LLM response: {response.text}")
+                st.error(f"Invalid JSON for {url}. Error: {e}")
+                st.write(f"Cleaned LLM response: {cleaned_response}")
                 return None
-
 
             if isinstance(extracted_keywords, list) and all(isinstance(keyword, str) for keyword in extracted_keywords):
                 all_keywords.extend(extracted_keywords)
             else:
                 st.warning(f"Keywords not a list of strings for URL: {url}")
-
 
         except requests.exceptions.RequestException as e:
             st.error(f"Error fetching URL {url}: {e}")
@@ -59,8 +61,6 @@ def analyze_links(urls):
 
     return sorted_keywords
 
-
-
 st.title("Priority Map")
 
 links = []
@@ -68,8 +68,6 @@ for i in range(2):  # Allow up to 2 links (adjust as needed)
     link = st.text_input(f"Enter URL {i+1} (optional)", key=f"link_{i}")
     if link:
         links.append(link)
-
-
 
 if st.button("Analyze Links") and links:
     if not 1 <= len(links) <= 2:
