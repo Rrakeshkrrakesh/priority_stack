@@ -16,7 +16,58 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 def analyze_links(urls):
     all_keywords = []
     for url in urls:
-        # ... (The code inside this function remains exactly the same as the previous version)
+        try:
+            # 1. Fetch webpage content
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            webpage_content = response.text
+
+            # 2. Truncate content
+            max_content_length = 2000000  # Adjust if needed
+            truncated_content = webpage_content[:max_content_length]
+
+            # 3. Construct prompt
+            prompt = f"""
+                Extract the most relevant keywords related to the main topics discussed on this webpage.
+                Prioritize keywords that are central to the theme and purpose of the page.
+
+                Webpage Content:
+                ```html
+                {truncated_content}
+                ```
+
+                Return a JSON array of strings (keywords). Do not include any extra text or formatting, just the JSON array.
+            """
+
+            # 4. LLM Interaction
+            response = model.generate_content(prompt)
+
+            # 5. Parse JSON response
+            try:
+                cleaned_response = response.text.strip()
+                if (cleaned_response.startswith("```") and cleaned_response.endswith("```")):
+                    cleaned_response = cleaned_response[3:-3]
+                extracted_keywords = json.loads(cleaned_response)
+            except json.JSONDecodeError as e:
+                st.error(f"Invalid JSON for {url}. Error: {e}")
+                st.write(f"Cleaned LLM response: {cleaned_response}")
+                return None
+
+            # 6. Validate and append keywords
+            if isinstance(extracted_keywords, list) and all(isinstance(keyword, str) for keyword in extracted_keywords):
+                all_keywords.extend(extracted_keywords)
+            else:
+                st.warning(f"Keywords not a list of strings for URL: {url}")
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error fetching URL {url}: {e}")
+        except Exception as e:
+            st.error(f"Error analyzing URL {url}: {e}")
+
+    keyword_counts = Counter(all_keywords)
+    sorted_keywords = sorted(keyword_counts.items(), key=lambda item: item[1], reverse=True)
+    return sorted_keywords
+
 
 
 # --- Streamlit App ---
