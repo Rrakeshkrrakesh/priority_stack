@@ -34,8 +34,7 @@ def analyze_links(urls):
             response = model.generate_content(prompt)
             extracted_keywords = response.text.split(",")
             keywords.extend([keyword.strip() for keyword in extracted_keywords])
-            top_keywords = [f"{keyword} ({count})" for keyword, count in sorted_keywords[:5]]  # Format as "keyword (count)"
-st.write(", ".join(top_keywords))
+            
 
         except requests.exceptions.RequestException as e:
             st.error(f"Error fetching URL {url}: {e}")
@@ -65,7 +64,11 @@ if st.button("Analyze Links") and links:
     else:
       with st.spinner("Analyzing links..."):
           keywords = analyze_links(links)
-
+          
+      if sorted_keywords:
+        top_keywords = [f"{keyword} ({count})" for keyword, count in sorted_keywords[:5]]
+        st.write(", ".join(top_keywords))
+         
       if keywords:
           st.header("Extracted Keywords")
           st.write(", ".join(keywords))
