@@ -48,6 +48,7 @@ def analyze_links(urls):
                 if (cleaned_response.startswith("```") and cleaned_response.endswith("```")):
                     cleaned_response = cleaned_response[3:-3]
                 extracted_keywords = json.loads(cleaned_response)
+                print(f"Extracted keywords for {url}: {extracted_keywords}")
             except json.JSONDecodeError as e:
                 st.error(f"Invalid JSON for {url}. Error: {e}")
                 st.write(f"Cleaned LLM response: {cleaned_response}")
@@ -68,8 +69,6 @@ def analyze_links(urls):
     sorted_keywords = sorted(keyword_counts.items(), key=lambda item: item[1], reverse=True)
     return sorted_keywords
 
-
-
 # --- Streamlit App ---
 st.title("Priority Map")
 
@@ -88,12 +87,12 @@ if uploaded_file:
     except Exception as e:
         st.error(f"Error processing bookmarks file: {e}")
 
-
 for i in range(5):  # Allow up to 5 URLs
     link = st.text_input(f"Enter URL {i+1} (optional)", key=f"link_{i}")
     if link and link not in st.session_state.links:  # Avoid duplicates
         st.session_state.links.append(link)
 
+print(f"st.session_state.links: {st.session_state.links}")
 
 # --- Analysis and Display ---
 if st.button("Analyze Links"):
@@ -117,7 +116,6 @@ if st.button("Analyze Links"):
                 "Select priorities (drag to reorder)", [keyword for keyword, count in sorted_keywords], st.session_state.priorities
             )
             st.session_state.priorities = priorities
-
 
             st.write("Your prioritized keywords:")
             for i, keyword in enumerate(st.session_state.priorities):
