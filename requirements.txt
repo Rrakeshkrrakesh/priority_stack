@@ -1,4 +1,6 @@
 streamlit  # Replace with your actual Streamlit version
 google-generativeai
 requests
+beautifulsoup4
+
 # other libraries...
