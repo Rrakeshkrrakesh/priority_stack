@@ -5,81 +5,82 @@ import streamlit as st
 from collections import Counter
 
 # Configure Gemini (replace with your actual API key or use Streamlit secrets)
-api_key = st.secrets["GEMINI_API_KEY"] # Or os.environ["API_KEY"]
+api_key = st.secrets["GEMINI_API_KEY"]  # Or os.environ["API_KEY"] if not using Streamlit secrets
 genai.configure(api_key=api_key)
 
 def analyze_links(urls):
-    keywords = []
-    model = genai.GenerativeModel("gemini-1.5-flash")  # Or a suitable Gemini model
+    all_keywords = []
+    model = genai.GenerativeModel("gemini-1.5-flash")
     for url in urls:
         try:
-            response = requests.get(url, timeout=10) # Add a timeout to prevent indefinite hanging
-            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
             webpage_content = response.text
 
-            # Limit content size to prevent exceeding LLM token limits
-            max_content_length = 20000000000  # Adjust as needed
+            max_content_length = 2000000  # Adjust as needed
             truncated_content = webpage_content[:max_content_length]
 
-
             prompt = f"""
-                Extract the most common and important keywords related to the main topics discussed on this webpage:
+                Extract the most relevant keywords related to the main topics discussed on this webpage.
+                Prioritize keywords that are central to the theme and purpose of the page.
 
+                Webpage Content:
                 ```html
                 {truncated_content}
                 ```
 
-                Return a list of keywords separated by commas.
+                Return a JSON array of strings (keywords).
             """
-       
-            response = model.generate_content(prompt)
-            extracted_keywords = response.text.split(",")
-            keywords.extend([keyword.strip() for keyword in extracted_keywords])
-            
 
+            response = model.generate_content(prompt)
+            extracted_keywords = eval(response.text)  # Use eval() carefully
+
+            if isinstance(extracted_keywords, list) and all(isinstance(keyword, str) for keyword in extracted_keywords):
+                all_keywords.extend(extracted_keywords)
+            else:
+                st.warning(f"Invalid keyword format from LLM for URL: {url}")
+
+        except (SyntaxError, NameError) as e:
+            st.error(f"Error parsing keywords for {url}: {e}")
         except requests.exceptions.RequestException as e:
             st.error(f"Error fetching URL {url}: {e}")
         except Exception as e:
             st.error(f"Error analyzing URL {url}: {e}")
+
+    keyword_counts = Counter(all_keywords)
+    sorted_keywords = sorted(keyword_counts.items(), key=lambda item: item[1], reverse=True)
+
     return sorted_keywords
-
-
-# ... (after keyword processing)
-
-
-
 
 
 
 st.title("Priority Map")
 
 links = []
-for i in range(2):  # Allow up to 5 links
+for i in range(2):  # Allow up to 2 links (adjust as needed)
     link = st.text_input(f"Enter URL {i+1} (optional)", key=f"link_{i}")
     if link:
         links.append(link)
 
+
+
 if st.button("Analyze Links") and links:
-    if not 1 <= len(links) <=2:
-        st.error("Please enter between 1 and 5 URLs")
+    if not 1 <= len(links) <= 2:
+        st.error("Please enter between 1 and 2 URLs")
     else:
-      with st.spinner("Analyzing links..."):
-          keywords = analyze_links(links)
-          
-      if sorted_keywords:
-        top_keywords = [f"{keyword} ({count})" for keyword, count in sorted_keywords[:5]]
-        st.write(", ".join(top_keywords))
-         
-      if keywords:
-          st.header("Extracted Keywords")
-          st.write(", ".join(keywords))
+        with st.spinner("Analyzing links..."):
+            sorted_keywords = analyze_links(links)
 
-          st.header("Prioritize Keywords")
-          priorities = st.multiselect(
-              "Select priorities (drag to reorder)", keywords, keywords
-          )
+        if sorted_keywords:
+            top_keywords = [f"{keyword} ({count})" for keyword, count in sorted_keywords[:5]]
+            st.write(", ".join(top_keywords))
 
+            st.header("Prioritize Keywords")
+            default_priorities = [keyword for keyword, count in sorted_keywords[:5]] if len(sorted_keywords) > 5 else [keyword for keyword, count in sorted_keywords]
+            priorities = st.multiselect(
+                "Select priorities (drag to reorder)", [keyword for keyword, count in sorted_keywords], default_priorities
+            )
 
-          st.write("Your prioritized keywords:")
-          for i, keyword in enumerate(priorities):
-              st.write(f"{i+1}. {keyword}")
+            st.write("Your prioritized keywords:")
+            for i, keyword in enumerate(priorities):
+                st.write(f"{i+1}. {keyword}")
