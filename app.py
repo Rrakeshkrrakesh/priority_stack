@@ -1,34 +1,38 @@
+import google.generativeai as genai
+import os
 import streamlit as st
-import openai
 
-# Set your OpenAI API key (securely – environment variables are best)
-openai.api_key = st.secrets["OPENAI_API_KEY"]  # Access from Streamlit secrets
+# Configure Gemini (replace with your actual API key or use Streamlit secrets)
+api_key = st.secrets["GEMINI_API_KEY"] # Or os.environ["API_KEY"] if not using Streamlit secrets
+genai.configure(api_key=api_key)
 
 def analyze_links(urls):
     keywords = []
+    model = genai.GenerativeModel("gemini-1.5-flash") # Use a suitable Gemini model
     for url in urls:
         try:
             prompt = f"Extract the most common and important keywords related to the main topics discussed on this webpage: {url}.  Return a list of keywords separated by commas."
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            extracted_keywords = completion.choices[0].message.content.split(",")
+
+            response = model.generate_content(prompt)
+            extracted_keywords = response.text.split(",")  # Access the text directly
             keywords.extend([keyword.strip() for keyword in extracted_keywords])
+
         except Exception as e:
             st.error(f"Error analyzing URL {url}: {e}")
+
     return keywords
+
 
 st.title("Priority Map")
 
 links = []
-for i in range(5):  # Allow up to 5 links
+for i in range(2):  # Allow up to 5 links
     link = st.text_input(f"Enter URL {i+1} (optional)", key=f"link_{i}")
     if link:
         links.append(link)
 
 if st.button("Analyze Links") and links:
-    if not 1 <= len(links) <=5:
+    if not 1 <= len(links) <=2:
         st.error("Please enter between 1 and 5 URLs")
     else:
       with st.spinner("Analyzing links..."):
