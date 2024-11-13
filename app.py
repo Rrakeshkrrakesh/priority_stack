@@ -30,10 +30,12 @@ def analyze_links(urls):
 
                 Return a list of keywords separated by commas.
             """
-
+       
             response = model.generate_content(prompt)
             extracted_keywords = response.text.split(",")
             keywords.extend([keyword.strip() for keyword in extracted_keywords])
+            top_keywords = [f"{keyword} ({count})" for keyword, count in sorted_keywords[:5]]  # Format as "keyword (count)"
+st.write(", ".join(top_keywords))
 
         except requests.exceptions.RequestException as e:
             st.error(f"Error fetching URL {url}: {e}")
@@ -44,8 +46,7 @@ def analyze_links(urls):
 
 # ... (after keyword processing)
 
-top_keywords = [f"{keyword} ({count})" for keyword, count in sorted_keywords[:5]]  # Format as "keyword (count)"
-st.write(", ".join(top_keywords))
+
 
 
 
