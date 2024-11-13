@@ -2,6 +2,7 @@ import requests
 import google.generativeai as genai
 import os
 import streamlit as st
+from collections import Counter
 
 # Configure Gemini (replace with your actual API key or use Streamlit secrets)
 api_key = st.secrets["GEMINI_API_KEY"] # Or os.environ["API_KEY"]
