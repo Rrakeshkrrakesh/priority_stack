@@ -40,7 +40,7 @@ def analyze_links(urls):
             st.error(f"Error fetching URL {url}: {e}")
         except Exception as e:
             st.error(f"Error analyzing URL {url}: {e}")
-    return keywords
+    return sorted_keywords
 
 
 # ... (after keyword processing)
