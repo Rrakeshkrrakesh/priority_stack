@@ -2,6 +2,7 @@ import requests
 import google.generativeai as genai
 import os
 import streamlit as st
+import json
 from collections import Counter
 
 # Configure Gemini (replace with your actual API key or use Streamlit secrets)
@@ -33,15 +34,21 @@ def analyze_links(urls):
             """
 
             response = model.generate_content(prompt)
-            extracted_keywords = eval(response.text)  # Use eval() carefully
+
+            try:
+                extracted_keywords = json.loads(response.text)  # Use json.loads()
+            except json.JSONDecodeError as e:
+                st.error(f"Invalid JSON returned by LLM for URL: {url}. Error: {e}")
+                st.write(f"Raw LLM response: {response.text}")
+                return None
+
 
             if isinstance(extracted_keywords, list) and all(isinstance(keyword, str) for keyword in extracted_keywords):
                 all_keywords.extend(extracted_keywords)
             else:
-                st.warning(f"Invalid keyword format from LLM for URL: {url}")
+                st.warning(f"Keywords not a list of strings for URL: {url}")
 
-        except (SyntaxError, NameError) as e:
-            st.error(f"Error parsing keywords for {url}: {e}")
+
         except requests.exceptions.RequestException as e:
             st.error(f"Error fetching URL {url}: {e}")
         except Exception as e:
