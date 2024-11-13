@@ -17,7 +17,7 @@ def analyze_links(urls):
             webpage_content = response.text
 
             # Limit content size to prevent exceeding LLM token limits
-            max_content_length = 2000  # Adjust as needed
+            max_content_length = 20000000000  # Adjust as needed
             truncated_content = webpage_content[:max_content_length]
 
 
